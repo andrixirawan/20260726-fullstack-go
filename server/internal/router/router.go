@@ -59,6 +59,7 @@ func New(
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.Auth(authService))
 				r.Get("/me", authHandler.Me)
+				r.Patch("/me", authHandler.UpdateProfile)
 			})
 		})
 

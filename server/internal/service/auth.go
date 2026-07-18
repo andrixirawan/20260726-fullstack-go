@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -23,15 +26,17 @@ var (
 
 // AuthService handles authentication business logic.
 type AuthService struct {
-	userRepo *repository.UserRepository
-	jwtCfg   *config.JWTConfig
+	userRepo  *repository.UserRepository
+	jwtCfg    *config.JWTConfig
+	uploadDir string
 }
 
 // NewAuthService creates a new AuthService.
-func NewAuthService(userRepo *repository.UserRepository, jwtCfg *config.JWTConfig) *AuthService {
+func NewAuthService(userRepo *repository.UserRepository, jwtCfg *config.JWTConfig, uploadDir string) *AuthService {
 	return &AuthService{
-		userRepo: userRepo,
-		jwtCfg:   jwtCfg,
+		userRepo:  userRepo,
+		jwtCfg:    jwtCfg,
+		uploadDir: uploadDir,
 	}
 }
 
@@ -112,6 +117,55 @@ func (s *AuthService) GetCurrentUser(ctx context.Context, userID uuid.UUID) (*mo
 
 	resp := user.ToResponse()
 	return &resp, nil
+}
+
+// UpdateProfile updates the profile details of the authenticated user.
+func (s *AuthService) UpdateProfile(ctx context.Context, userID uuid.UUID, req *model.UpdateProfileRequest) (*model.UserResponse, error) {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	oldAvatarURL := user.AvatarURL
+
+	if req.FullName != nil {
+		user.FullName = *req.FullName
+	}
+
+	avatarChanged := false
+	if req.AvatarURL != nil && *req.AvatarURL != oldAvatarURL {
+		user.AvatarURL = *req.AvatarURL
+		avatarChanged = true
+	}
+
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return nil, fmt.Errorf("updating user profile: %w", err)
+	}
+
+	// If the avatar was changed/deleted and there was an old avatar, delete the old file from disk.
+	if avatarChanged && oldAvatarURL != "" {
+		if filename := extractFilename(oldAvatarURL); filename != "" {
+			oldFilePath := filepath.Join(s.uploadDir, filename)
+			// Ignore error if file doesn't exist
+			_ = os.Remove(oldFilePath)
+		}
+	}
+
+	resp := user.ToResponse()
+	return &resp, nil
+}
+
+// extractFilename gets the physical filename from the avatar URL path.
+func extractFilename(avatarURL string) string {
+	if avatarURL == "" {
+		return ""
+	}
+	const separator = "/uploads/"
+	idx := strings.Index(avatarURL, separator)
+	if idx == -1 {
+		return ""
+	}
+	return avatarURL[idx+len(separator):]
 }
 
 // generateToken creates a signed JWT token for the given user ID.

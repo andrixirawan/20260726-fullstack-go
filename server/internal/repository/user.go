@@ -112,6 +112,27 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.User
 	return user, nil
 }
 
+// Update updates an existing user's profile details.
+func (r *UserRepository) Update(ctx context.Context, user *model.User) error {
+	query := `
+		UPDATE users
+		SET full_name = $1, avatar_url = $2, updated_at = NOW()
+		WHERE id = $3
+		RETURNING updated_at`
+
+	err := r.pool.QueryRow(ctx, query,
+		user.FullName,
+		user.AvatarURL,
+		user.ID,
+	).Scan(&user.UpdatedAt)
+
+	if err != nil {
+		return fmt.Errorf("updating user: %w", err)
+	}
+
+	return nil
+}
+
 // isDuplicateKeyError checks if the error is a PostgreSQL unique constraint violation.
 func isDuplicateKeyError(err error) bool {
 	// pgx wraps PostgreSQL error codes; code 23505 = unique_violation.

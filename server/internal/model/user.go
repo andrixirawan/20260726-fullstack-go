@@ -73,3 +73,9 @@ type UploadResponse struct {
 	URL      string `json:"url"`
 	Size     int64  `json:"size"`
 }
+
+// UpdateProfileRequest represents the user profile update request payload.
+type UpdateProfileRequest struct {
+	FullName  *string `json:"full_name" validate:"omitempty,min=1,max=255"`
+	AvatarURL *string `json:"avatar_url" validate:"omitempty,max=2048"`
+}

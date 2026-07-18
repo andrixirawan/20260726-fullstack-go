@@ -94,7 +94,7 @@ func run(logger *slog.Logger) error {
 	// Initialize dependencies.
 	v := validator.New()
 	userRepo := repository.NewUserRepository(pool)
-	authService := service.NewAuthService(userRepo, &cfg.JWT)
+	authService := service.NewAuthService(userRepo, &cfg.JWT, cfg.Upload.Dir)
 
 	// Initialize handlers.
 	authHandler := handler.NewAuthHandler(authService, v, logger)

@@ -153,6 +153,54 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, user)
 }
 
+// UpdateProfile handles updating the authenticated user's profile.
+//
+//	@Summary		Update current user profile
+//	@Description	Allows updating full_name and/or avatar_url of the currently authenticated user
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			request	body		model.UpdateProfileRequest	true	"Profile update fields"
+//	@Success		200		{object}	model.UserResponse
+//	@Failure		400		{object}	model.ErrorResponse
+//	@Failure		401		{object}	model.ErrorResponse
+//	@Failure		500		{object}	model.ErrorResponse
+//	@Router			/auth/me [patch]
+func (h *AuthHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, model.ErrorResponse{
+			Error: "user not authenticated",
+		})
+		return
+	}
+
+	var req model.UpdateProfileRequest
+	if errResp := h.validator.DecodeAndValidate(r, &req); errResp != nil {
+		writeJSON(w, http.StatusBadRequest, errResp)
+		return
+	}
+
+	user, err := h.authService.UpdateProfile(r.Context(), userID, &req)
+	if err != nil {
+		if errors.Is(err, repository.ErrUserNotFound) {
+			writeJSON(w, http.StatusNotFound, model.ErrorResponse{
+				Error: "user not found",
+			})
+			return
+		}
+		h.logger.Error("failed to update user profile", slog.Any("error", err))
+		writeJSON(w, http.StatusInternalServerError, model.ErrorResponse{
+			Error: "internal server error",
+		})
+		return
+	}
+
+	h.logger.Info("user profile updated", slog.String("id", userID.String()))
+	writeJSON(w, http.StatusOK, user)
+}
+
 // writeJSON writes a JSON response with the given status code.
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
