@@ -1,0 +1,85 @@
+# Docker Compose - Fullstack Go Application
+# Usage: docker compose up --build
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: fullstack-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # Go Backend API
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+      target: development
+    container_name: fullstack-server
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    volumes:
+      - ./server:/app
+      - go-modules:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Next.js Frontend
+  next:
+    build:
+      context: ./next
+      dockerfile: Dockerfile
+    container_name: fullstack-next
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./next:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+
+  # React (React Router) Frontend
+  react:
+    build:
+      context: ./react
+      dockerfile: Dockerfile
+    container_name: fullstack-react
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./react:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+
+volumes:
+  pgdata:
+    driver: local
+  go-modules:
+    driver: local
+  go-build-cache:
+    driver: local
+  uploads:
+    driver: local
+
