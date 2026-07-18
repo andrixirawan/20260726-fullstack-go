@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 
 	"github.com/shendrong/fullstack-go/server/internal/handler"
 	"github.com/shendrong/fullstack-go/server/internal/middleware"
@@ -30,13 +31,19 @@ func New(
 
 	// CORS configuration.
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:5173"},
+		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:3001", "http://localhost:5173"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Requested-With"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
+
+	// Swagger UI — served directly from the Go server.
+	// Access at: http://localhost:8080/swagger/index.html
+	r.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("/swagger/doc.json"),
+	))
 
 	// API v1 routes.
 	r.Route("/api/v1", func(r chi.Router) {

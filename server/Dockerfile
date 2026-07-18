@@ -10,7 +10,13 @@ ENV GOTOOLCHAIN=local
 COPY go.mod go.sum ./
 RUN go mod download
 
+# Install swag CLI for swagger doc generation
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+
 COPY . .
+
+# Generate swagger docs before building
+RUN swag init -g ./cmd/api/main.go -o ./docs --parseDependency --parseInternal
 
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /bin/api ./cmd/api
 
@@ -21,7 +27,11 @@ RUN apk add --no-cache git curl
 
 ENV GOTOOLCHAIN=local
 
+# Install air for hot reload
 RUN curl -sSfL https://raw.githubusercontent.com/air-verse/air/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+
+# Install swag CLI for swagger doc generation on file changes
+RUN go install github.com/swaggo/swag/cmd/swag@latest
 
 WORKDIR /app
 
@@ -29,6 +39,9 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
+
+# Generate swagger docs
+RUN swag init -g ./cmd/api/main.go -o ./docs --parseDependency --parseInternal
 
 CMD ["air", "-c", ".air.toml"]
 

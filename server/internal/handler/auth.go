@@ -29,7 +29,19 @@ func NewAuthHandler(authService *service.AuthService, v *validator.Validator, lo
 	}
 }
 
-// Register handles POST /api/v1/auth/register.
+// Register handles user registration.
+//
+//	@Summary		Register a new user
+//	@Description	Create a new user account with email and password
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		model.RegisterRequest	true	"Registration payload"
+//	@Success		201		{object}	model.AuthResponse
+//	@Failure		400		{object}	model.ErrorResponse
+//	@Failure		409		{object}	model.ErrorResponse
+//	@Failure		500		{object}	model.ErrorResponse
+//	@Router			/auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req model.RegisterRequest
 	if errResp := h.validator.DecodeAndValidate(r, &req); errResp != nil {
@@ -56,7 +68,20 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, resp)
 }
 
-// Login handles POST /api/v1/auth/login.
+// Login handles user login.
+//
+//	@Summary		Login user
+//	@Description	Authenticate with email and password, returns JWT token
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		model.LoginRequest	true	"Login payload"
+//	@Success		200		{object}	model.AuthResponse
+//	@Failure		400		{object}	model.ErrorResponse
+//	@Failure		401		{object}	model.ErrorResponse
+//	@Failure		403		{object}	model.ErrorResponse
+//	@Failure		500		{object}	model.ErrorResponse
+//	@Router			/auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req model.LoginRequest
 	if errResp := h.validator.DecodeAndValidate(r, &req); errResp != nil {
@@ -89,7 +114,18 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-// Me handles GET /api/v1/auth/me.
+// Me returns the authenticated user's profile.
+//
+//	@Summary		Get current user
+//	@Description	Returns the profile of the currently authenticated user
+//	@Tags			auth
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Success		200	{object}	model.UserResponse
+//	@Failure		401	{object}	model.ErrorResponse
+//	@Failure		404	{object}	model.ErrorResponse
+//	@Failure		500	{object}	model.ErrorResponse
+//	@Router			/auth/me [get]
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserIDFromContext(r.Context())
 	if !ok {
@@ -122,7 +158,6 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(v); err != nil {
-		// Log encoding errors but don't attempt to write another response.
 		slog.Error("failed to encode JSON response", slog.Any("error", err))
 	}
 }

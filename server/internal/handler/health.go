@@ -32,7 +32,14 @@ func NewHealthHandler(pool *pgxpool.Pool, uploadCfg *config.UploadConfig, logger
 	}
 }
 
-// Health handles GET /api/v1/health.
+// Health returns the health status of the server.
+//
+//	@Summary		Health check
+//	@Description	Returns server and database connection status
+//	@Tags			system
+//	@Produce		json
+//	@Success		200	{object}	map[string]string
+//	@Router			/health [get]
 func (h *HealthHandler) Health(w http.ResponseWriter, r *http.Request) {
 	dbStatus := "up"
 	if err := h.pool.Ping(r.Context()); err != nil {
@@ -46,7 +53,20 @@ func (h *HealthHandler) Health(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Upload handles POST /api/v1/upload.
+// Upload handles file uploads.
+//
+//	@Summary		Upload a file
+//	@Description	Upload a file (image or document). Returns the file URL. Max size 10MB.
+//	@Tags			files
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			file	formData	file				true	"File to upload"
+//	@Success		201		{object}	model.UploadResponse
+//	@Failure		400		{object}	model.ErrorResponse
+//	@Failure		401		{object}	model.ErrorResponse
+//	@Failure		500		{object}	model.ErrorResponse
+//	@Router			/upload [post]
 func (h *HealthHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	// Limit request body size.
 	r.Body = http.MaxBytesReader(w, r.Body, h.uploadCfg.MaxSize)

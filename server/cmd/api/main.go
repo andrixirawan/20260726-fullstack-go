@@ -1,3 +1,23 @@
+// Package main is the entry point for the Fullstack Go API server.
+//
+//	@title						Fullstack Go API
+//	@version					1.0
+//	@description				Production-grade REST API with JWT authentication, file upload, and PostgreSQL.
+//	@termsOfService				http://swagger.io/terms/
+//
+//	@contact.name				API Support
+//	@contact.email				support@example.com
+//
+//	@license.name				MIT
+//	@license.url				https://opensource.org/licenses/MIT
+//
+//	@host						localhost:8080
+//	@BasePath					/api/v1
+//
+//	@securityDefinitions.apikey	BearerAuth
+//	@in							header
+//	@name						Authorization
+//	@description				JWT token. Format: "Bearer {token}"
 package main
 
 import (
@@ -21,6 +41,9 @@ import (
 	"github.com/shendrong/fullstack-go/server/internal/router"
 	"github.com/shendrong/fullstack-go/server/internal/service"
 	"github.com/shendrong/fullstack-go/server/internal/validator"
+
+	// Import generated swagger docs.
+	_ "github.com/shendrong/fullstack-go/server/docs"
 )
 
 func main() {
@@ -94,7 +117,10 @@ func run(logger *slog.Logger) error {
 	signal.Notify(shutdownCh, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		logger.Info("starting server", slog.String("addr", srv.Addr))
+		logger.Info("starting server",
+			slog.String("addr", srv.Addr),
+			slog.String("swagger", fmt.Sprintf("http://localhost:%d/swagger/index.html", cfg.Server.Port)),
+		)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("server error", slog.Any("error", err))
 			os.Exit(1)
@@ -119,7 +145,6 @@ func run(logger *slog.Logger) error {
 
 // runMigrations applies database migrations.
 func runMigrations(cfg *config.Config, logger *slog.Logger) error {
-	// Use pgx5 scheme for golang-migrate with pgx v5.
 	dsn := fmt.Sprintf(
 		"pgx5://%s:%s@%s:%d/%s?sslmode=%s",
 		cfg.Database.User, cfg.Database.Password, cfg.Database.Host,
