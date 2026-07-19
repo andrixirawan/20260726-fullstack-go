@@ -27,6 +27,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -163,11 +164,21 @@ func run(logger *slog.Logger) error {
 
 // runMigrations applies database migrations.
 func runMigrations(cfg *config.Config, logger *slog.Logger) error {
-	dsn := fmt.Sprintf(
-		"pgx5://%s:%s@%s:%d/%s?sslmode=%s",
-		cfg.Database.User, cfg.Database.Password, cfg.Database.Host,
-		cfg.Database.Port, cfg.Database.Name, cfg.Database.SSLMode,
-	)
+	var dsn string
+	if cfg.Database.URL != "" {
+		dsn = cfg.Database.URL
+		if strings.HasPrefix(dsn, "postgres://") {
+			dsn = strings.Replace(dsn, "postgres://", "pgx5://", 1)
+		} else if strings.HasPrefix(dsn, "postgresql://") {
+			dsn = strings.Replace(dsn, "postgresql://", "pgx5://", 1)
+		}
+	} else {
+		dsn = fmt.Sprintf(
+			"pgx5://%s:%s@%s:%d/%s?sslmode=%s",
+			cfg.Database.User, cfg.Database.Password, cfg.Database.Host,
+			cfg.Database.Port, cfg.Database.Name, cfg.Database.SSLMode,
+		)
+	}
 
 	m, err := migrate.New("file://migrations", dsn)
 	if err != nil {
