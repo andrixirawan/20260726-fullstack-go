@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -28,6 +30,7 @@ type PostService struct {
 	categoryRepo *repository.CategoryRepository
 	tagRepo      *repository.TagRepository
 	userRepo     *repository.UserRepository
+	uploadDir    string
 }
 
 // NewPostService creates a new PostService.
@@ -36,12 +39,14 @@ func NewPostService(
 	categoryRepo *repository.CategoryRepository,
 	tagRepo *repository.TagRepository,
 	userRepo *repository.UserRepository,
+	uploadDir string,
 ) *PostService {
 	return &PostService{
 		postRepo:     postRepo,
 		categoryRepo: categoryRepo,
 		tagRepo:      tagRepo,
 		userRepo:     userRepo,
+		uploadDir:    uploadDir,
 	}
 }
 
@@ -175,6 +180,8 @@ func (s *PostService) Update(ctx context.Context, postID uuid.UUID, requesterID 
 		return nil, ErrPostForbidden
 	}
 
+	oldCoverImage := post.CoverImage
+
 	if req.Title != nil && *req.Title != post.Title {
 		newSlug, err := s.generateUniqueSlug(ctx, *req.Title, &postID)
 		if err != nil {
@@ -190,8 +197,12 @@ func (s *PostService) Update(ctx context.Context, postID uuid.UUID, requesterID 
 	if req.Content != nil {
 		post.Content = *req.Content
 	}
+	coverChanged := false
 	if req.CoverImage != nil {
-		post.CoverImage = *req.CoverImage
+		if *req.CoverImage != oldCoverImage {
+			post.CoverImage = *req.CoverImage
+			coverChanged = true
+		}
 	}
 	if req.CategoryID != nil {
 		post.CategoryID = req.CategoryID
@@ -210,6 +221,14 @@ func (s *PostService) Update(ctx context.Context, postID uuid.UUID, requesterID 
 			return nil, ErrPostSlugConflict
 		}
 		return nil, fmt.Errorf("updating post: %w", err)
+	}
+
+	// If the cover was changed/deleted and there was an old cover, delete the old file from disk.
+	if coverChanged && oldCoverImage != "" {
+		if filename := extractFilename(oldCoverImage); filename != "" {
+			oldFilePath := filepath.Join(s.uploadDir, filename)
+			_ = os.Remove(oldFilePath)
+		}
 	}
 
 	// Update tags if provided.
@@ -236,7 +255,21 @@ func (s *PostService) Delete(ctx context.Context, postID uuid.UUID, requesterID 
 		return ErrPostForbidden
 	}
 
-	return s.postRepo.Delete(ctx, postID)
+	oldCoverImage := post.CoverImage
+
+	if err := s.postRepo.Delete(ctx, postID); err != nil {
+		return err
+	}
+
+	// Delete cover image file from disk if it was stored locally.
+	if oldCoverImage != "" {
+		if filename := extractFilename(oldCoverImage); filename != "" {
+			oldFilePath := filepath.Join(s.uploadDir, filename)
+			_ = os.Remove(oldFilePath)
+		}
+	}
+
+	return nil
 }
 
 // TogglePublish toggles the publish status of a post.
@@ -389,3 +422,5 @@ func slugify(s string) string {
 	}
 	return result
 }
+
+

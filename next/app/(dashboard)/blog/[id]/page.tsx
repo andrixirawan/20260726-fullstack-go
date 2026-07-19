@@ -200,11 +200,17 @@ function CommentItem({ comment, postId, depth = 0, onReload }: CommentItemProps)
               )}
               {isOwner && (
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <span className="flex items-center justify-center h-6 w-6 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-                      <MoreVertical className="h-3.5 w-3.5" />
-                    </span>
-                  </DropdownMenuTrigger>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        className="text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        <MoreVertical className="h-3.5 w-3.5" />
+                      </Button>
+                    }
+                  />
                   <DropdownMenuContent align="start">
                     <DropdownMenuItem onClick={() => setEditing(true)}>Edit</DropdownMenuItem>
                     <DropdownMenuItem className="text-destructive" onClick={handleDelete}>
@@ -421,10 +427,13 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
             {post.status}
           </Badge>
           {post.category && (
-            <span className="flex items-center gap-1 text-sm text-muted-foreground">
+            <Link
+              href={`/blog?category_id=${post.category.id}`}
+              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
               <Folder className="h-3.5 w-3.5" />
               {post.category.name}
-            </span>
+            </Link>
           )}
         </div>
 
@@ -460,12 +469,13 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
           <div className="flex items-center gap-2 flex-wrap">
             <Tag className="h-3.5 w-3.5 text-muted-foreground" />
             {post.tags.map((t) => (
-              <span
+              <Link
                 key={t.id}
-                className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full"
+                href={`/blog?tag_id=${t.id}`}
+                className="text-xs bg-primary/10 text-primary hover:bg-primary/20 px-2 py-0.5 rounded-full transition-colors"
               >
                 {t.name}
-              </span>
+              </Link>
             ))}
           </div>
         )}

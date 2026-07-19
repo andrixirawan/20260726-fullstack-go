@@ -105,7 +105,7 @@ func run(logger *slog.Logger) error {
 	commentRepo := repository.NewCommentRepository(pool)
 
 	// Blog: services.
-	postService := service.NewPostService(postRepo, categoryRepo, tagRepo, userRepo)
+	postService := service.NewPostService(postRepo, categoryRepo, tagRepo, userRepo, cfg.Upload.Dir)
 	categoryService := service.NewCategoryService(categoryRepo)
 	tagService := service.NewTagService(tagRepo)
 	commentService := service.NewCommentService(commentRepo, userRepo)

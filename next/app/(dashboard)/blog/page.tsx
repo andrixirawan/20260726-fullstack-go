@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import {
   PenLine,
   Search,
@@ -18,8 +18,11 @@ import {
   ChevronLeft,
   ChevronRight,
   BookOpen,
+  Settings,
 } from "lucide-react"
 import { toast } from "sonner"
+
+import { ManageMetadataDialog } from "@/components/blog/manage-metadata-dialog"
 
 import { blogApi, PostListItem, Category, Tag as TagType, PostStatus } from "@/lib/api"
 import { Button } from "@/components/ui/button"
@@ -74,6 +77,17 @@ export default function BlogPage() {
   const [categoryId, setCategoryId] = useState("")
   const [tagId, setTagId] = useState("")
   const [page, setPage] = useState(1)
+  const [manageOpen, setManageOpen] = useState(false)
+
+  const searchParams = useSearchParams()
+
+  // Sync URL search params to filter state
+  useEffect(() => {
+    const cat = searchParams.get("category_id") || ""
+    const tag = searchParams.get("tag_id") || ""
+    if (cat) setCategoryId(cat)
+    if (tag) setTagId(tag)
+  }, [searchParams])
 
   // Debounce search
   useEffect(() => {
@@ -111,10 +125,14 @@ export default function BlogPage() {
     loadPosts()
   }, [loadPosts])
 
-  useEffect(() => {
+  const loadMetadata = useCallback(() => {
     blogApi.listCategories().then(setCategories).catch(() => {})
     blogApi.listTags().then(setTags).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    loadMetadata()
+  }, [loadMetadata])
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.preventDefault()
@@ -149,12 +167,25 @@ export default function BlogPage() {
             {total} post{total !== 1 ? "s" : ""} total
           </p>
         </div>
-        <Link href="/blog/new">
-          <Button id="btn-new-post" className="gap-2">
-            <PenLine className="h-4 w-4" />
-            New Post
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          {user && (
+            <Button
+              id="btn-manage-metadata"
+              variant="outline"
+              onClick={() => setManageOpen(true)}
+              className="gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Manage Categories/Tags
+            </Button>
+          )}
+          <Link href="/blog/new">
+            <Button id="btn-new-post" className="gap-2">
+              <PenLine className="h-4 w-4" />
+              New Post
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
@@ -181,7 +212,7 @@ export default function BlogPage() {
           </SelectContent>
         </Select>
 
-        <Select value={categoryId} onValueChange={setCategoryId}>
+        <Select value={categoryId} onValueChange={(val) => setCategoryId(val ?? "")}>
           <SelectTrigger id="select-category" className="w-40">
             <SelectValue placeholder="All categories" />
           </SelectTrigger>
@@ -195,7 +226,7 @@ export default function BlogPage() {
           </SelectContent>
         </Select>
 
-        <Select value={tagId} onValueChange={setTagId}>
+        <Select value={tagId} onValueChange={(val) => setTagId(val ?? "")}>
           <SelectTrigger id="select-tag" className="w-36">
             <SelectValue placeholder="All tags" />
           </SelectTrigger>
@@ -261,10 +292,18 @@ export default function BlogPage() {
                   {/* Meta: category + status */}
                   <div className="flex items-center gap-2 flex-wrap">
                     {post.category && (
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setCategoryId(post.category?.id || "")
+                        }}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                      >
                         <Folder className="h-3 w-3" />
                         {post.category.name}
-                      </span>
+                      </button>
                     )}
                     <Badge
                       variant="outline"
@@ -294,12 +333,18 @@ export default function BlogPage() {
                     <div className="flex items-center gap-1 flex-wrap">
                       <Tag className="h-3 w-3 text-muted-foreground" />
                       {post.tags.slice(0, 3).map((t) => (
-                        <span
+                        <button
                           key={t.id}
-                          className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full"
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setTagId(t.id)
+                          }}
+                          className="text-xs bg-primary/10 text-primary hover:bg-primary/20 px-1.5 py-0.5 rounded-full transition-colors cursor-pointer"
                         >
                           {t.name}
-                        </span>
+                        </button>
                       ))}
                       {post.tags.length > 3 && (
                         <span className="text-xs text-muted-foreground">
@@ -323,16 +368,19 @@ export default function BlogPage() {
                     </div>
                     {isOwner && (
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                            id={`btn-post-menu-${post.id}`}
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
+                        <DropdownMenuTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                              id={`btn-post-menu-${post.id}`}
+                              onClick={(e) => e.preventDefault()}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             onClick={(e) => {
@@ -404,6 +452,12 @@ export default function BlogPage() {
           </Button>
         </div>
       )}
+      {/* Manage metadata dialog */}
+      <ManageMetadataDialog
+        open={manageOpen}
+        onOpenChange={setManageOpen}
+        onReload={loadMetadata}
+      />
     </div>
   )
 }

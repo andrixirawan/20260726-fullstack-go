@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Send, Save, X } from "lucide-react"
+import { ArrowLeft, Send, Save, X, Upload, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { blogApi, Category, Tag, PostStatus, ApiError } from "@/lib/api"
@@ -30,9 +30,26 @@ export default function NewPostPage() {
   const [excerpt, setExcerpt] = useState("")
   const [content, setContent] = useState("")
   const [coverImage, setCoverImage] = useState("")
+  const [isUploadingCover, setIsUploadingCover] = useState(false)
   const [categoryId, setCategoryId] = useState("")
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
   const [status, setStatus] = useState<PostStatus>("draft")
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setIsUploadingCover(true)
+    try {
+      const result = await blogApi.uploadImage(file)
+      const coverUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}${result.url}`
+      setCoverImage(coverUrl)
+      toast.success("Cover image uploaded successfully!")
+    } catch {
+      toast.error("Failed to upload cover image")
+    } finally {
+      setIsUploadingCover(false)
+    }
+  }
 
   useEffect(() => {
     blogApi.listCategories().then(setCategories).catch(() => {})
@@ -61,7 +78,7 @@ export default function NewPostPage() {
         title,
         excerpt,
         content,
-        cover_image: coverImage || undefined,
+        cover_image: coverImage,
         category_id: categoryId || undefined,
         tag_ids: selectedTagIds.length > 0 ? selectedTagIds : undefined,
         status: submitStatus,
@@ -173,15 +190,43 @@ const hello = 'world'
             <h3 className="font-semibold text-sm">Post Settings</h3>
 
             <div className="space-y-2">
-              <Label htmlFor="input-cover-image">Cover Image URL</Label>
-              <Input
-                id="input-cover-image"
-                placeholder="https://..."
-                value={coverImage}
-                onChange={(e) => setCoverImage(e.target.value)}
-              />
+              <Label htmlFor="input-cover-image">Cover Image (Optional)</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="input-cover-image"
+                  placeholder="https://... or upload"
+                  value={coverImage}
+                  onChange={(e) => setCoverImage(e.target.value)}
+                  disabled={isUploadingCover}
+                  className="flex-1"
+                />
+                <div className="relative">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCoverUpload}
+                    disabled={isUploadingCover}
+                    className="hidden"
+                    id="cover-upload-file"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => document.getElementById("cover-upload-file")?.click()}
+                    disabled={isUploadingCover}
+                    title="Upload cover image"
+                  >
+                    {isUploadingCover ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
               {coverImage && (
-                <div className="rounded-lg overflow-hidden h-28 bg-muted mt-2">
+                <div className="relative rounded-lg overflow-hidden h-28 bg-muted mt-2 group/cover">
                   <img
                     src={coverImage}
                     alt="Cover preview"
@@ -190,13 +235,22 @@ const hello = 'world'
                       ;(e.target as HTMLImageElement).style.display = "none"
                     }}
                   />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-1.5 right-1.5 h-6 w-6 opacity-0 group-hover/cover:opacity-100 transition-opacity"
+                    onClick={() => setCoverImage("")}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
                 </div>
               )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="select-new-category">Category</Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
+              <Select value={categoryId} onValueChange={(val) => setCategoryId(val ?? "")}>
                 <SelectTrigger id="select-new-category">
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>

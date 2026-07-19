@@ -34,6 +34,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     throw new Error("Unauthorized")
   }
 
+  if (response.status === 204) {
+    return {} as T
+  }
+
   const data = await response.json()
 
   if (!response.ok) {
@@ -286,5 +290,22 @@ export const blogApi = {
 
   deleteComment: (id: string) =>
     request<void>(`/api/v1/comments/${id}`, { method: "DELETE" }),
+
+  // Upload image
+  uploadImage: async (file: File): Promise<{ url: string }> => {
+    const token = useAuthStore.getState().token
+    const formData = new FormData()
+    formData.append("file", file)
+
+    const response = await fetch(`${API_BASE_URL}/api/v1/upload`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    })
+
+    const data = await response.json()
+    if (!response.ok) throw new ApiError(data.error || "Upload failed", response.status)
+    return data
+  },
 }
 
