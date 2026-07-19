@@ -112,3 +112,179 @@ export const userApi = {
     return data
   },
 }
+
+// ─── Blog types ──────────────────────────────────────────────────────────────
+
+export type PostStatus = "draft" | "published"
+
+export interface Category {
+  id: string
+  name: string
+  slug: string
+  description: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Tag {
+  id: string
+  name: string
+  slug: string
+  created_at: string
+}
+
+export interface Post {
+  id: string
+  author: User
+  category?: Category
+  tags: Tag[]
+  title: string
+  slug: string
+  excerpt: string
+  content: string
+  cover_image: string
+  status: PostStatus
+  published_at?: string
+  view_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface PostListItem
+  extends Omit<Post, "content"> {}
+
+export interface PostListResponse {
+  data: PostListItem[]
+  total: number
+  page: number
+  page_size: number
+  total_pages: number
+}
+
+export interface CommentResponse {
+  id: string
+  post_id: string
+  author: User
+  parent_id?: string
+  content: string
+  is_deleted: boolean
+  replies: CommentResponse[]
+  created_at: string
+  updated_at: string
+}
+
+export interface PostListQuery {
+  page?: number
+  page_size?: number
+  status?: PostStatus | ""
+  category_id?: string
+  tag_id?: string
+  search?: string
+}
+
+// ─── Blog API ─────────────────────────────────────────────────────────────────
+
+export const blogApi = {
+  // Posts
+  listPosts: (query: PostListQuery = {}) => {
+    const params = new URLSearchParams()
+    if (query.page) params.set("page", String(query.page))
+    if (query.page_size) params.set("page_size", String(query.page_size))
+    if (query.status) params.set("status", query.status)
+    if (query.category_id) params.set("category_id", query.category_id)
+    if (query.tag_id) params.set("tag_id", query.tag_id)
+    if (query.search) params.set("search", query.search)
+    return request<PostListResponse>(`/api/v1/posts?${params.toString()}`)
+  },
+
+  getPostById: (id: string) => request<Post>(`/api/v1/posts/${id}`),
+
+  getPostBySlug: (slug: string) => request<Post>(`/api/v1/posts/slug/${slug}`),
+
+  createPost: (data: {
+    title: string
+    content: string
+    excerpt?: string
+    cover_image?: string
+    category_id?: string
+    tag_ids?: string[]
+    status?: PostStatus
+  }) =>
+    request<Post>("/api/v1/posts", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updatePost: (
+    id: string,
+    data: {
+      title?: string
+      content?: string
+      excerpt?: string
+      cover_image?: string
+      category_id?: string
+      tag_ids?: string[]
+      status?: PostStatus
+    },
+  ) =>
+    request<Post>(`/api/v1/posts/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  deletePost: (id: string) =>
+    request<void>(`/api/v1/posts/${id}`, { method: "DELETE" }),
+
+  togglePublish: (id: string) =>
+    request<Post>(`/api/v1/posts/${id}/publish`, { method: "PATCH" }),
+
+  // Categories
+  listCategories: () => request<Category[]>("/api/v1/categories"),
+
+  createCategory: (data: { name: string; description?: string }) =>
+    request<Category>("/api/v1/categories", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updateCategory: (id: string, data: { name?: string; description?: string }) =>
+    request<Category>(`/api/v1/categories/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  deleteCategory: (id: string) =>
+    request<void>(`/api/v1/categories/${id}`, { method: "DELETE" }),
+
+  // Tags
+  listTags: () => request<Tag[]>("/api/v1/tags"),
+
+  createTag: (data: { name: string }) =>
+    request<Tag>("/api/v1/tags", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  deleteTag: (id: string) =>
+    request<void>(`/api/v1/tags/${id}`, { method: "DELETE" }),
+
+  // Comments
+  listComments: (postId: string) =>
+    request<CommentResponse[]>(`/api/v1/posts/${postId}/comments`),
+
+  createComment: (postId: string, data: { content: string; parent_id?: string }) =>
+    request<CommentResponse>(`/api/v1/posts/${postId}/comments`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updateComment: (id: string, data: { content: string }) =>
+    request<CommentResponse>(`/api/v1/comments/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  deleteComment: (id: string) =>
+    request<void>(`/api/v1/comments/${id}`, { method: "DELETE" }),
+}
+

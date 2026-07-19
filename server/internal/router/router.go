@@ -18,6 +18,10 @@ import (
 func New(
 	authHandler *handler.AuthHandler,
 	healthHandler *handler.HealthHandler,
+	postHandler *handler.PostHandler,
+	categoryHandler *handler.CategoryHandler,
+	tagHandler *handler.TagHandler,
+	commentHandler *handler.CommentHandler,
 	authService *service.AuthService,
 	logger *slog.Logger,
 ) http.Handler {
@@ -67,6 +71,55 @@ func New(
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(authService))
 			r.Post("/upload", healthHandler.Upload)
+		})
+
+		// ── Blog: Posts ──────────────────────────────────────────────────────
+		r.Route("/posts", func(r chi.Router) {
+			// Public endpoints.
+			r.Get("/", postHandler.ListPosts)
+			r.Get("/slug/{slug}", postHandler.GetPostBySlug)
+			r.Get("/{id}", postHandler.GetPostByID)
+			r.Get("/{id}/comments", commentHandler.ListComments)
+
+			// Protected endpoints.
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.Auth(authService))
+				r.Post("/", postHandler.CreatePost)
+				r.Put("/{id}", postHandler.UpdatePost)
+				r.Delete("/{id}", postHandler.DeletePost)
+				r.Patch("/{id}/publish", postHandler.TogglePublish)
+				r.Post("/{id}/comments", commentHandler.CreateComment)
+			})
+		})
+
+		// ── Blog: Comments ───────────────────────────────────────────────────
+		r.Route("/comments", func(r chi.Router) {
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.Auth(authService))
+				r.Put("/{id}", commentHandler.UpdateComment)
+				r.Delete("/{id}", commentHandler.DeleteComment)
+			})
+		})
+
+		// ── Blog: Categories ─────────────────────────────────────────────────
+		r.Route("/categories", func(r chi.Router) {
+			r.Get("/", categoryHandler.ListCategories)
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.Auth(authService))
+				r.Post("/", categoryHandler.CreateCategory)
+				r.Put("/{id}", categoryHandler.UpdateCategory)
+				r.Delete("/{id}", categoryHandler.DeleteCategory)
+			})
+		})
+
+		// ── Blog: Tags ───────────────────────────────────────────────────────
+		r.Route("/tags", func(r chi.Router) {
+			r.Get("/", tagHandler.ListTags)
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.Auth(authService))
+				r.Post("/", tagHandler.CreateTag)
+				r.Delete("/{id}", tagHandler.DeleteTag)
+			})
 		})
 	})
 

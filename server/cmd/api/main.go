@@ -93,15 +93,33 @@ func run(logger *slog.Logger) error {
 
 	// Initialize dependencies.
 	v := validator.New()
+
+	// User.
 	userRepo := repository.NewUserRepository(pool)
 	authService := service.NewAuthService(userRepo, &cfg.JWT, cfg.Upload.Dir)
+
+	// Blog: repositories.
+	postRepo := repository.NewPostRepository(pool)
+	categoryRepo := repository.NewCategoryRepository(pool)
+	tagRepo := repository.NewTagRepository(pool)
+	commentRepo := repository.NewCommentRepository(pool)
+
+	// Blog: services.
+	postService := service.NewPostService(postRepo, categoryRepo, tagRepo, userRepo)
+	categoryService := service.NewCategoryService(categoryRepo)
+	tagService := service.NewTagService(tagRepo)
+	commentService := service.NewCommentService(commentRepo, userRepo)
 
 	// Initialize handlers.
 	authHandler := handler.NewAuthHandler(authService, v, logger)
 	healthHandler := handler.NewHealthHandler(pool, &cfg.Upload, logger)
+	postHandler := handler.NewPostHandler(postService, v, logger)
+	categoryHandler := handler.NewCategoryHandler(categoryService, v, logger)
+	tagHandler := handler.NewTagHandler(tagService, v, logger)
+	commentHandler := handler.NewCommentHandler(commentService, v, logger)
 
 	// Setup router.
-	r := router.New(authHandler, healthHandler, authService, logger)
+	r := router.New(authHandler, healthHandler, postHandler, categoryHandler, tagHandler, commentHandler, authService, logger)
 
 	// Create HTTP server.
 	srv := &http.Server{
