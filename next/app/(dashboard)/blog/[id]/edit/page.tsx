@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { ArrowLeft, Save, Send, X, Upload, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { blogApi, Post, Category, Tag, PostStatus, ApiError } from "@/lib/api"
+import { blogApi, Post, Category, Tag, PostStatus, ApiError, API_BASE_URL } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -46,7 +46,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     setIsUploadingCover(true)
     try {
       const result = await blogApi.uploadImage(file)
-      const coverUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}${result.url}`
+      const coverUrl = `${API_BASE_URL}${result.url}`
       setCoverImage(coverUrl)
       toast.success("Cover image uploaded successfully!")
     } catch {

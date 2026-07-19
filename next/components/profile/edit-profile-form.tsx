@@ -6,7 +6,7 @@ import { Loader2, Upload, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 import { updateProfileSchema, type UpdateProfileFormValues } from "@/lib/schemas"
-import { userApi, ApiError } from "@/lib/api"
+import { userApi, ApiError, API_BASE_URL } from "@/lib/api"
 import { useAuthStore } from "@/store/auth.store"
 import { toast } from "@/components/ui/sonner"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -55,7 +55,7 @@ export function EditProfileForm() {
     setUploading(true)
     try {
       const result = await userApi.uploadAvatar(file)
-      const avatarUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}${result.url}`
+      const avatarUrl = `${API_BASE_URL}${result.url}`
       form.setFieldValue("avatar_url", avatarUrl)
       const updated = await userApi.updateProfile({ avatar_url: avatarUrl })
       setUser(updated)
