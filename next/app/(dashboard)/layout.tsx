@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
-import { LayoutDashboard, User, LogOut, Menu } from "lucide-react"
+import { LayoutDashboard, User, LogOut, Menu, BookOpen } from "lucide-react"
 
 import { useAuthStore } from "@/store/auth.store"
 import { useAuthBootstrap } from "@/hooks/use-auth"
@@ -48,6 +48,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/blog", label: "Blog", icon: BookOpen },
     { href: "/profile", label: "Profile", icon: User },
   ]
 

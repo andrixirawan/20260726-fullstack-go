@@ -4,6 +4,19 @@ Repository ini berisi boilerplate aplikasi fullstack modern dengan backend Go, d
 
 ---
 
+## 🔗 Application Access URLs
+
+Saat menjalankan environment development via Docker Compose, Anda dapat mengakses aplikasi pada URL berikut:
+
+| Service | Description | URL |
+|---------|-------------|-----|
+| **Go REST API** | Entry point untuk API backend | [http://localhost:8080](http://localhost:8080) |
+| **Swagger UI** | Dokumentasi interaktif API & Testing | [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html) |
+| **Next.js Frontend** | Dashboard & feature blog (Next.js 16) | [http://localhost:3001](http://localhost:3001) |
+| **React Frontend** | Client app scaffold (React Router 7) | [http://localhost:5173](http://localhost:5173) |
+
+---
+
 ## 🚀 Tech Stack
 
 ### Backend (`server/`)
