@@ -25,6 +25,7 @@ type ServerConfig struct {
 
 // DatabaseConfig holds PostgreSQL connection configuration.
 type DatabaseConfig struct {
+	URL      string `envconfig:"DATABASE_URL"`
 	Host     string `envconfig:"DB_HOST" default:"localhost"`
 	Port     int    `envconfig:"DB_PORT" default:"5432"`
 	User     string `envconfig:"DB_USER" default:"postgres"`
@@ -51,6 +52,9 @@ type UploadConfig struct {
 
 // DSN returns the PostgreSQL connection string.
 func (d *DatabaseConfig) DSN() string {
+	if d.URL != "" {
+		return d.URL
+	}
 	return fmt.Sprintf(
 		"postgres://%s:%s@%s:%d/%s?sslmode=%s",
 		d.User, d.Password, d.Host, d.Port, d.Name, d.SSLMode,
