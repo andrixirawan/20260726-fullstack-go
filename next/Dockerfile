@@ -3,14 +3,17 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy package manifests first for better layer caching
-COPY package.json ./
+COPY package.json package-lock.json* yarn.lock* ./
 
 # Install dependencies
-RUN npm install
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 # Copy source code
 COPY . .
 
-EXPOSE 3000
+# Build the Next.js application
+RUN npm run build
 
-CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0"]
+EXPOSE 8080
+
+CMD ["npm", "run", "start"]
